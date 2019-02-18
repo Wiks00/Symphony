@@ -46,6 +46,24 @@ namespace NotificationFunctionApp.Helpers
 
             return applicationSettings;
         }
+
+        public static List<SubscriptionMeta> TransformAsync(
+            string applicationId,
+            List<SubscriptionMeta> subscriptions, ExecutionContext context)
+        {
+            var config = context.GetConfiguration();
+
+            var esbBaseUrl = config.GetSection("Values:esbNotificationsEndpointUrl").Value
+                .Replace("{applicationId}", applicationId);
+
+            foreach (var subscription in subscriptions)
+            {
+                subscription.CallbackUrl = esbBaseUrl;
+            }
+
+            return subscriptions;
+        }
+
         public static async Task SaveOrUpdateColumnsLastValuesAsync(string partitionKey, Dictionary<string, string> columnsAndValues, ExecutionContext context)
         {
             var rowKey = (DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks).ToString("d19");
@@ -108,7 +126,7 @@ namespace NotificationFunctionApp.Helpers
         private static CloudStorageAccount CreateStorageAccount(ExecutionContext context)
         {
             var connectionString = ApplicationSettings.GetConfigurationSetting<string>(context, "Values:storageAccountConfig:connectionString");
-
+           
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new ArgumentException("Connection string to storage account should be provided.");

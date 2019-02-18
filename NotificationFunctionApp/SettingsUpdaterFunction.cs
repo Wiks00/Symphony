@@ -21,15 +21,13 @@ namespace NotificationFunctionApp
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            if (string.IsNullOrWhiteSpace(applicationId))
-            {
-                return new BadRequestObjectResult("X-Application-Id header should be provided");
-            }
-            
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             List<SubscriptionMeta> subscriptions = JsonConvert.DeserializeObject<List<SubscriptionMeta>>(requestBody);
 
             var applicationSettingsToSave = ApplicationUpdaterHelper.SaveSubscriptionInitialDataAsync(subscriptions);
+
+            ApplicationUpdaterHelper.TransformAsync(applicationId, subscriptions, context);
+
             await ApplicationUpdaterHelper.SaveOrUpdateColumnsLastValuesAsync(applicationId, applicationSettingsToSave, context);
 
             return new OkResult();
