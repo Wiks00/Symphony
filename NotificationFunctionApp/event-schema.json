@@ -1,0 +1,63 @@
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://example.com/root.json",
+  "type": "array",
+  "title": "The Root Schema",
+  "items": {
+    "$id": "#/items",
+    "type": "object",
+    "title": "The Items Schema",
+    "required": [
+      "eventName",
+      "callbackUrl",
+      "secret",
+      "contactEmail"
+    ],
+    "properties": {
+      "eventName": {
+        "$id": "#/items/properties/eventName",
+        "type": "string",
+        "title": "The Eventname Schema",
+        "examples": [
+          "CampaignCreated"
+        ]
+      },
+      "callbackUrl": {
+        "$id": "#/items/properties/callbackUrl",
+        "type": "string",
+        "title": "The Callbackurl Schema",
+        "examples": [
+          "https://demodefaultcallbackurl.com"
+        ],
+        "format": "uri"
+      },
+      "secret": {
+        "$id": "#/items/properties/secret",
+        "type": "string",
+        "title": "The Secret Schema",
+        "examples": [
+          "123456789abcdefghijklmnopqrstu"
+        ]
+      },
+      "contactEmail": {
+        "$id": "#/items/properties/contactEmail",
+        "type": "string",
+        "title": "The Contactemail Schema",
+        "examples": [
+          "a@a.com;q@q.com"
+        ],
+        "pattern": "^(([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5}){1,25})+([;.](([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5}){1,25})+)*$"
+      },
+      "healthCheckUrl": {
+        "$id": "#/items/properties/healthCheckUrl",
+        "type": "string",
+        "title": "The Healthcheckurl Schema",
+        "examples": [
+          " https://demodefaulthealthcheckurl.com "
+        ],
+        "format": "uri"
+      }
+    }
+  }
+}
