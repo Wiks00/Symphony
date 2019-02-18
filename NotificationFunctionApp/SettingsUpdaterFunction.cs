@@ -7,6 +7,9 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using NotificationFunctionApp.Entities;
+using NotificationFunctionApp.Helpers;
 
 namespace NotificationFunctionApp
 {
@@ -14,21 +17,24 @@ namespace NotificationFunctionApp
     {
         [FunctionName("SettingsUpdaterFunction")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "{applicationId}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "settingsupdater/{applicationId}")] HttpRequest req,
             string applicationId,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            string name = req.Query["name"];
+            if (string.IsNullOrWhiteSpace(applicationId))
+            {
+                return new BadRequestObjectResult("X-Application-Id header should be provided");
+            }
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            List<SubscriptionMeta> subscriptions = JsonConvert.DeserializeObject<List<SubscriptionMeta>>(requestBody);
 
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+            var applicationSettingsToSave = ApplicationUpdaterHelper.SaveSubscriptionInitialDataAsync(subscriptions);
+            await ApplicationUpdaterHelper.SaveOrUpdateColumnsLastValuesAsync(applicationId, applicationSettingsToSave);
+
+            return new OkResult();
         }
     }
 }
