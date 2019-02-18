@@ -18,7 +18,7 @@ namespace NotificationFunctionApp
 
         public static IConfiguration GetConfiguration(this ExecutionContext context)
         {
-            string key = context.FunctionAppDirectory;
+            string key = context.FunctionName;
 
             if (!Configs.TryGetValue(key, out IConfiguration configuration))
             {

@@ -14,10 +14,12 @@ namespace NotificationFunctionApp
 {
     public static class SettingsUpdaterFunction
     {
-        [FunctionName("SettingsUpdaterFunction")]
+        [FunctionName(nameof(SettingsUpdaterFunction))]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "settingsupdater/{applicationId}")] HttpRequest req,
-            string applicationId, ExecutionContext context, ILogger log)
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "settings/{applicationId}")] HttpRequest req,
+            string applicationId,
+            ExecutionContext context,
+            ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
