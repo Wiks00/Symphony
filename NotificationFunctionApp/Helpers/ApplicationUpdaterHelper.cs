@@ -1,10 +1,10 @@
-﻿using Microsoft.WindowsAzure.Storage;
+﻿using Microsoft.Azure.WebJobs;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using NotificationFunctionApp.Entities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace NotificationFunctionApp.Helpers
@@ -46,7 +46,7 @@ namespace NotificationFunctionApp.Helpers
 
             return applicationSettings;
         }
-        public static async Task SaveOrUpdateColumnsLastValuesAsync(string partitionKey, Dictionary<string, string> columnsAndValues)
+        public static async Task SaveOrUpdateColumnsLastValuesAsync(string partitionKey, Dictionary<string, string> columnsAndValues, ExecutionContext context)
         {
             var rowKey = (DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks).ToString("d19");
 
@@ -56,10 +56,10 @@ namespace NotificationFunctionApp.Helpers
                 tableRecord.Properties[setting.Key] = new EntityProperty(setting.Value);
             }
 
-            await InsertOrMergeAsync(ApplicationsSettingsTableName, tableRecord);
+            await InsertOrMergeAsync(ApplicationsSettingsTableName, tableRecord, context);
         }
 
-        private static async Task<TEntity> InsertOrMergeAsync<TEntity>(string tableName, TEntity entity)
+        private static async Task<TEntity> InsertOrMergeAsync<TEntity>(string tableName, TEntity entity, ExecutionContext context)
            where TEntity : class, ITableEntity
         {
             if (entity == null)
@@ -67,7 +67,7 @@ namespace NotificationFunctionApp.Helpers
                 throw new ArgumentNullException("entity");
             }
 
-            var table = await CreateCloudTableAsync(tableName);
+            var table = await CreateCloudTableAsync(tableName, context);
 
             var insertOrMergeOperation = TableOperation.InsertOrMerge(entity);
 
@@ -77,14 +77,14 @@ namespace NotificationFunctionApp.Helpers
             return insertedEntity;
         }
 
-        private static async Task<CloudTable> CreateCloudTableAsync(string tableName)
+        private static async Task<CloudTable> CreateCloudTableAsync(string tableName, ExecutionContext context)
         {
             if (string.IsNullOrWhiteSpace(tableName))
             {
                 throw new System.ArgumentException("TableName should be provided", nameof(tableName));
             }
-                       
-            var cloudTableClient = CreateStorageAccount().CreateCloudTableClient();
+
+            var cloudTableClient = CreateStorageAccount(context).CreateCloudTableClient();
 
             var cloudTableInstance = cloudTableClient.GetTableReference(tableName);
 
@@ -105,10 +105,9 @@ namespace NotificationFunctionApp.Helpers
             return cloudTableInstance;
         }
 
-        private static CloudStorageAccount CreateStorageAccount()
+        private static CloudStorageAccount CreateStorageAccount(ExecutionContext context)
         {
-            //TO DO: get from settings
-            var connectionString = "DefaultEndpointsProtocol=https;AccountName=symphonysa;AccountKey=zM+FIP81jnn4BAGq8iHxWriczRzX0xehu0OdsE42I9QsHDAqyPx2Hy6NqjPfcuwaGH3WdmMbnbWvE971lN1h0Q==;EndpointSuffix=core.windows.net";
+            var connectionString = ApplicationSettings.GetConfigurationSetting<string>(context, "Values:storageAccountConfig:connectionString");
 
             if (string.IsNullOrWhiteSpace(connectionString))
             {
