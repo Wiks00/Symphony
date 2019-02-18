@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Rest;
 using Microsoft.Rest.Azure;
 using Newtonsoft.Json;
+using NotificationFunctionApp.Helpers;
 
 namespace NotificationFunctionApp
 {
@@ -30,11 +31,11 @@ namespace NotificationFunctionApp
             log.LogInformation("C# HTTP trigger function processed a request.");
 
             var azureServicesTokenProvider = new AzureServiceTokenProvider();
-            var configuration = context.GetConfiguration();
+            IConfiguration configuration = context.GetConfiguration();
 
             string filter = $"applicationId = '{applicationId}'";
 
-            var sbClient = await azureServicesTokenProvider.AuthenticateAndCreateServiceBusClientAsync(configuration);
+            ServiceBusManagementClient sbClient = await azureServicesTokenProvider.AuthenticateAndCreateServiceBusClientAsync(configuration);
 
             log.LogInformation("Management client successfully initialized");
 
@@ -61,64 +62,12 @@ namespace NotificationFunctionApp
 
         private static async Task<ServiceBusManagementClient> AuthenticateAndCreateServiceBusClientAsync(this AzureServiceTokenProvider tokenProvider, IConfiguration configuration)
         {
-            
             string accessToken = await tokenProvider.GetAccessTokenAsync(configuration.GetValue<string>("managementConfig:audience"));
 
             return new ServiceBusManagementClient(new TokenCredentials(accessToken))
             {
                 SubscriptionId = configuration.GetValue<string>("managementConfig:subscriptionId")
             };
-        }
-
-        private static async Task<IList<SBSubscription>> ListAndAggregateAsync(this ISubscriptionsOperations operations, string resourceGroup, string namespaceName, string topicName)
-        {
-            List<SBSubscription> subscriptions = new List<SBSubscription>();
-
-            AzureOperationResponse<IPage<SBSubscription>> response =
-                await operations.ListByTopicWithHttpMessagesAsync(resourceGroup, namespaceName, topicName);
-
-
-            subscriptions.AddRange(response.Body);
-
-            while (!string.IsNullOrEmpty(response.Body.NextPageLink)) 
-            {
-                response =
-                    await operations.ListByTopicNextWithHttpMessagesAsync(response.Body.NextPageLink);
-
-                subscriptions.AddRange(response.Body);
-            } 
-
-            return subscriptions;
-        }
-
-        private static async Task<SBSubscription> GetAsync(this ISubscriptionsOperations operations,
-            string resourceGroup, string namespaceName, string topicName, string subscriptionName)
-        {
-            var subscriptions =
-                await operations.ListAndAggregateAsync(resourceGroup, namespaceName, topicName);
-
-            return subscriptions.FirstOrDefault(s =>
-                s.Name.Equals(subscriptionName, StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static async Task<IList<Rule>> ListAndAggregateAsync(this IRulesOperations operations, string resourceGroup, string namespaceName, string topicName, string subscriptionName)
-        {
-            List<Rule> subscriptions = new List<Rule>();
-
-            AzureOperationResponse<IPage<Rule>> response =
-                await operations.ListBySubscriptionsWithHttpMessagesAsync(resourceGroup, namespaceName, topicName, subscriptionName);
-
-            subscriptions.AddRange(response.Body);
-
-            while (!string.IsNullOrEmpty(response.Body.NextPageLink))
-            {
-                response =
-                    await operations.ListBySubscriptionsNextWithHttpMessagesAsync(response.Body.NextPageLink);
-
-                subscriptions.AddRange(response.Body);
-            }
-
-            return subscriptions;
         }
 
         private static async Task DeleteSubscriptionAsync(ServiceBusManagementClient sbClient, IConfiguration configuration, string subscriptionName)
@@ -165,7 +114,7 @@ namespace NotificationFunctionApp
             }
 
             //Workaround step 2.
-            var rules = await sbClient.Rules.ListAndAggregateAsync(resourceGroup, nsName, topicName, subscriptionName);
+            IList<Rule> rules = await sbClient.Rules.ListAndAggregateAsync(resourceGroup, nsName, topicName, subscriptionName);
 
             foreach (var rule in rules)
             {
